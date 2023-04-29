@@ -1,114 +1,75 @@
 <template>
-  <div>
-    <h1>Login</h1>
-    <form id="LoginForm" @submit.prevent="loginUser">
-      <div v-if="success" class="alert alert-success">
-        User login successful
-      </div>
-      <div v-if="errors.length" class="alert alert-danger">
-        <ul>
-          <li v-for="error in errors">{{ error }}</li>
-        </ul>
-      </div>
-      <div class="form-group mb-3">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" name="username" class="form-control" />
-      </div>
-      <div class="form-group mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" name="password" class="form-control"/>
-      </div>
-      <button type="submit" class="btn btn-primary">Login</button>
-    </form>
-  </div>
+    <div class="body1">
+        <h1>Login</h1>
+        <form @submit.prevent="loginUser" id="LoginForm">
+            <div v-if="result.errors">
+                <ul class="alert alert-danger">
+                    <li v-for="error in result.errors">{{ error }}</li>
+                </ul>
+            </div>
+            <div v-if="result.message">
+                <div class="alert alert-success">{{ result.message }}</div>
+            </div>
+            <div class="form-group mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" name="username" class="form-control" />
+            </div>
+            <div class="form-group mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" name="password" class="form-control"/>
+            </div>
+            <div class="lg"><button id="btn" type="submit" class="btn btn-primary">Login</button></div>
+        </form>
+    </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
 
-let success = ref(false);
+    import {ref, onMounted} from 'vue'
+    let csrf_token = ref("")
+    let result = ref([])
 
-let csrf_token = ref("");
-let errors = ref([]);
-let errorDisplayStatus = ref({});
-
-function getCsrfToken() {
-  fetch('/api/v1/csrf-token')
-    .then((response) => response.json())
-    .then((data) => {
-      console.log(data);
-      csrf_token.value = data.csrf_token;
-  })
-}
-
-onMounted(() => {
-  getCsrfToken();
-});
-
-function validateForm() {
-  errors.value = [];
-  errorDisplayStatus.value = {};
-
-  let usernameInput = document.getElementsByName("username")[0];
-  let passwordInput = document.getElementsByName("password")[0];
-
-  if (!usernameInput.value) {
-    errors.value.push("Username is required");
-  }
-
-  if (!passwordInput.value) {
-    errors.value.push("Password is required");
-  }
-
-  // Set errorDisplayStatus to false for each error that has not been displayed yet
-  errors.value.forEach(error => {
-    if (!errorDisplayStatus.value[error]) {
-      errorDisplayStatus.value[error] = false;
+    const getCsrfToken = () => {
+        fetch('/api/v1/csrf-token')
+        .then(res => res.json())
+        .then(data => {
+            csrf_token.value = data.csrf_token
+        })
     }
-  });
 
-  if (errors.value.length > 0) {
-    // Scroll to the top of the page to show the error messages
-    window.scrollTo(0, 0);
-  }
-
-  return errors.value.length === 0;
-}
-
-function loginUser() {
-  let LoginForm = document.getElementById('LoginForm');
-  let form_data = new FormData(LoginForm);
-
-  if (validateForm()) {
-    fetch("/api/v1/auth/login", {
-      method: 'POST',
-      body: form_data,
-      headers: {
-        'X-CSRFToken': csrf_token.value
-      }
+    onMounted(() => {
+        getCsrfToken()
     })
-      .then(function (response) {
-        if (response.ok) {
-          success.value = true;
-        } else {
-          return response.json();
-        }
-      })
-      .then(function (data) {
-        if (data.error) {
-          errors.value.push(data.error);
-        } else {
-          console.log(data.message);
-        }
-      })
-      .catch(function (error) {
-        console.log(error);
-        errors.value.push(error.response.data.error);
-      });
-  }
-}
-</script>
 
+    const loginUser = () => {
+        let loginForm = document.getElementById("LoginForm")
+        let form_data = new FormData(loginForm)
+        fetch("/api/v1/auth/login", {
+            method: "POST",
+            body: form_data,
+            headers: {
+                'X-CSRFToken': csrf_token.value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            result.value = data
+            console.log(data["errors"])
+            console.log("hey")
+            if(data["errors"])
+            {
+               
+            }
+            else{
+                localStorage.setItem("token", data.token)
+                 window.location.reload()
+            }
+            
+        })
+      
+    }
+
+</script>
 
 <style>
 #LoginForm{
@@ -120,6 +81,16 @@ function loginUser() {
   border-radius: 5px;
   box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
 }
+
+.body1{
+    height: 100vh;
+    margin-top: -20px;
+    background-image: url("https://c4.wallpaperflare.com/wallpaper/569/984/941/metal-simple-background-abstract-4k-wallpaper-preview.jpg");
+    background-size: cover;
+    background-position: top;
+    width: 100%;
+    color: white;
+  }
 
 h1{
   max-width: 500px;

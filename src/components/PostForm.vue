@@ -1,14 +1,14 @@
 <template>
-    <div>
-      <h1>New Post</h1>
-      <form id="PostForm" @submit.prevent="savePost">
-        <div v-if="success" class="alert alert-success">
-          Post successful
+    <div class="post">
+    <h1>New Post</h1>
+    <form @submit.prevent="savePost" id="PostForm">
+        <div v-if="result.errors">
+            <ul class="alert alert-danger">
+                <li v-for="error in result.errors">{{ error }}</li>
+            </ul>
         </div>
-        <div v-if="errors.length" class="alert alert-danger">
-          <ul>
-            <li v-for="error in errors">{{ error }}</li>
-          </ul>
+        <div v-if="result.message">
+            <div class="alert alert-success">{{ result.message }}</div>
         </div>
         <div class="form-group mb-3">
             <label for="photo" class="form-label">Photo</label>
@@ -18,100 +18,68 @@
             <label for="caption" class="form-label">Caption</label>
             <textarea name="caption" class="form-control"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-      </form>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from "vue";
-  
-  let success = ref(false);
-  
-  let csrf_token = ref("");
-  let errors = ref([]);
-  let errorDisplayStatus = ref({});
-  
-  function getCsrfToken() {
-    fetch('/api/v1/csrf-token')
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data);
-        csrf_token.value = data.csrf_token;
+        <button id="b" type="submit" class="btn btn-primary">Post</button>
+    </form>
+</div>
+</template>
+
+<script setup>
+
+    import {ref, onMounted} from 'vue'
+    const token = localStorage.getItem("token")
+    let csrf_token = ref("")
+    let result = ref([])
+    // const user = ref({})
+
+    const getCsrfToken = () => {
+        fetch('/api/v1/csrf-token')
+        .then(res => res.json())
+        .then(data => {
+            csrf_token.value = data.csrf_token
+        })
+    }
+
+    onMounted(() => {
+        getCsrfToken()
     })
-  }
-  
-  onMounted(() => {
-    getCsrfToken();
-  });
-  
-  function validateForm() {
-    errors.value = [];
-    errorDisplayStatus.value = {};
-  
-    let photoInput = document.getElementsByName("photo")[0];
-    let captionInput = document.getElementsByName("caption")[0];
-  
-    if (!photoInput.value) {
-      errors.value.push("Photo is required");
-    }
-  
-    if (!captionInput.value) {
-      errors.value.push("Caption is required");
-    }
-  
-    // Set errorDisplayStatus to false for each error that has not been displayed yet
-    errors.value.forEach(error => {
-      if (!errorDisplayStatus.value[error]) {
-        errorDisplayStatus.value[error] = false;
-      }
-    });
-  
-    if (errors.value.length > 0) {
-      // Scroll to the top of the page to show the error messages
-      window.scrollTo(0, 0);
-    }
-  
-    return errors.value.length === 0;
-  }
-  
-  function savePost() {
-    let PostForm = document.getElementById('PostForm');
-    let form_data = new FormData(PostForm);
-  
-    if (validateForm()) {
-      fetch("/api/v1/users/2/posts", {
-        method: 'POST',
-        body: form_data,
-        headers: {
-          'X-CSRFToken': csrf_token.value
-        }
-      })
-        .then(function (response) {
-          if (response.ok) {
-            success.value = true;
-          } else {
-            return response.json();
-          }
+
+    const fetchUser = async() => {
+        const res = await fetch("/api/v1/users/currentuser", {
+            method: "GET",
+            headers: {
+                'Authorization': "Bearer " + token
+            }
         })
-        .then(function (data) {
-          if (data.error) {
-            errors.value.push(data.error);
-          } else {
-            console.log(data.message);
-          }
-        })
-        .catch(function (error) {
-          console.log(error);
-          errors.value.push(error.response.data.error);
-        });
+        const data = await res.json()
+        return data
     }
-  }
-  </script>
-  
-  
-  <style>
-  #PostForm{
+
+    const savePost = async() => {
+        let user = await fetchUser()
+        let postForm = document.getElementById("PostForm")
+        let form_data = new FormData(postForm)
+        
+        // console.log(...form_data.entries())
+        fetch(`/api/v1/users/${user.id}/posts`, {
+            method: "POST",
+            body: form_data,
+            headers: {
+                'X-CSRFToken': csrf_token.value,
+                'Authorization': "Bearer " + token
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            result.value = data
+            console.log(data)
+        })
+        .catch(err => result.value = err)
+    }
+
+</script>
+
+<style>
+#PostForm{
     max-width: 500px;
     margin: 0 auto;
     padding: 20px;
@@ -125,5 +93,10 @@
     max-width: 500px;
     margin: 0 auto;
     padding-bottom: 20px;
+  }
+
+  #b{
+    align-items: center;
+    width: 100%;
   }
   </style>
