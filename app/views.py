@@ -95,12 +95,8 @@ def get_user(userId):
         user = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
         userId = user['id']
     
-    print("before")
-    print(userId)
-    print(session['id'])
     targetuser = Users.query.filter_by(id=userId).first()
     me  = Users.query.filter_by(id=session['id']).first()
-    print(me)
     checkfollows = Follows.query.filter_by(follower=targetuser, currentuser=me).all()
 
     for follows in checkfollows:
@@ -148,11 +144,10 @@ def create_post(userId):
         db.session.add(post)
         db.session.commit()
 
-        return jsonify({"message": "Post Successfully created"})
+        return jsonify({"message": "Posted"})
     else:
         errors = form_errors(form)
         response = {'errors': errors}
-        print("hey")
         return jsonify(response), 400
 
 @app.route("/api/v1/auth/login", methods=["POST", "GET"])
@@ -176,7 +171,6 @@ def login():
     else:
         errors = form_errors(form)
         response = {'errors': errors}
-        print("hey")
         return jsonify(response), 400
       
         
@@ -206,13 +200,10 @@ def get_posts(userId):
 @app.route("/api/v1/posts", methods=["GET"])
 def all_posts():
     posts = Posts.query.all()
-    print("before")
     likeornot = []
-    print(session['id'])
     checkid = Likes.query.filter_by(user_id=int(session['id'])).all()
     for i, likes in enumerate(checkid):
         if int(likes.post_id) == posts[i].id:
-            print("WOOOOOOOOOOOOYYYYYYYYYYYYYY")
             likeornot.append(False)
         else:
             likeornot.append(True)
@@ -223,7 +214,6 @@ def all_posts():
             likeornot[i]
         except Exception:
             likeornot.append(True)
-    print(likeornot)
    
     allPosts = []
     for i, post in enumerate(posts):
@@ -249,9 +239,7 @@ def follow(userId):
     if(not login):
         return jsonify({"error": "user does not exist"})
     data = request.get_json()
-    print(data)
     target_id = data['follow_id']
-    print("follow" +target_id)
 
     targetuser = Users.query.filter_by(id=target_id).first()
     checkfollows = Follows.query.filter_by(follower=targetuser, currentuser=login).all()
