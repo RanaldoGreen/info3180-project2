@@ -32,6 +32,108 @@
     </div>
 </template>
 
+<script setup>
+
+    import {ref, onMounted, onUpdated} from 'vue'
+    import {useRoute} from 'vue-router'
+    let csrf_token = ref("")
+
+    const followBtn = document.getElementById("follow")
+
+    const user = ref({})
+    const posts = ref([])
+    const followers = ref(0)
+    const token = localStorage.getItem("token")
+    const text = ref("Follow")
+    const route = useRoute()
+    let id = route.params.id
+    console.log(id)
+
+    onMounted(() => {
+        fetchUser(id).then(data => {
+            user.value = data
+            console.log(data)
+            if (data["Following"])
+            {
+                text.value = "Following"
+            }
+            else{
+                text.value = "Follow"
+            }
+        })
+        fetchPosts(id).then(data => posts.value = data.posts)
+        getFollowers(id).then(data => followers.value = data)
+        getCsrfToken()
+    })
+
+    const getCsrfToken = () => {
+        fetch('/api/v1/csrf-token')
+        .then(res => res.json())
+        .then(data => {
+            csrf_token.value = data.csrf_token
+        })
+    }
+
+
+    const fetchUser = async(id) => {
+        const res = await fetch(`/api/v1/users/${id}`, {
+            method: "GET",
+            headers: {
+                'Authorization': "Bearer " + token
+            }
+        })
+        const data = await res.json()
+        return data
+    }
+
+    const getFollowers = async(id) => {
+            const user = await fetchUser(id)
+            id = user.id
+            const res = await fetch(`/api/users/${id}/follow`, {
+            method: "GET",
+            headers: {
+                'Authorization': "Bearer " + token
+            }
+        })
+        const data = await res.json()
+        return data
+    }
+
+    const followUser = async(id) => {
+        const me = id
+        const who = await fetchUser("currentuser")
+        const res = await fetch(`/api/users/${who.id}/follow`, {
+            method:"POST",
+            body: JSON.stringify({"follow_id": me}),
+            headers: {
+                'X-CSRFToken': csrf_token.value,
+                'Authorization': "Bearer " + token,
+                'Content-Type': "application/json"
+            }
+        })
+        const data = await res.json()
+       
+        text.value = "Following"
+        getFollowers(id).then(data => followers.value = data)
+    
+        console.log(data)
+
+    }
+
+    const fetchPosts = async(id) => {
+        const user = await fetchUser(id)
+        id = user.id
+        const res = await fetch(`/api/v1/users/${id}/posts`, {
+            method: "GET",
+            headers: {
+                'Authorization': "Bearer " + token
+            }
+        })
+        const data = await res.json()
+        return data
+    }
+</script>
+
 <style>
 body{
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -170,97 +272,3 @@ body{
     }
 
 </style>
-
-<script setup>
-
-    import {ref, onMounted, onUpdated} from 'vue'
-    import {useRoute} from 'vue-router'
-    let csrf_token = ref("")
-
-    const followBtn = document.getElementById("follow")
-
-    const user = ref({})
-    const posts = ref([])
-    const followers = ref(0)
-    const token = localStorage.getItem("token")
-    const text = ref("Follow")
-    const route = useRoute()
-    let id = route.params.id
-    console.log(id)
-
-    onMounted(() => {
-        fetchUser(id).then(data => {
-            user.value = data
-            console.log(data)
-        })
-        fetchPosts(id).then(data => posts.value = data.posts)
-        getFollowers(id).then(data => followers.value = data)
-        getCsrfToken()
-    })
-
-    const getCsrfToken = () => {
-        fetch('/api/v1/csrf-token')
-        .then(res => res.json())
-        .then(data => {
-            csrf_token.value = data.csrf_token
-        })
-    }
-
-
-    const fetchUser = async(id) => {
-        const res = await fetch(`/api/v1/users/${id}`, {
-            method: "GET",
-            headers: {
-                'Authorization': "Bearer " + token
-            }
-        })
-        const data = await res.json()
-        return data
-    }
-
-    const getFollowers = async(id) => {
-            const user = await fetchUser(id)
-            id = user.id
-            const res = await fetch(`/api/users/${id}/follow`, {
-            method: "GET",
-            headers: {
-                'Authorization': "Bearer " + token
-            }
-        })
-        const data = await res.json()
-        return data
-    }
-
-    const followUser = async(id) => {
-        const me = id
-        const who = await fetchUser("currentuser")
-        const res = await fetch(`/api/users/${who.id}/follow`, {
-            method:"POST",
-            body: JSON.stringify({"follow_id": me}),
-            headers: {
-                'X-CSRFToken': csrf_token.value,
-                'Authorization': "Bearer " + token,
-                'Content-Type': "application/json"
-            }
-        })
-        const data = await res.json()
-       
-        text.value = "Following"
-    
-        console.log(data)
-
-    }
-
-    const fetchPosts = async(id) => {
-        const user = await fetchUser(id)
-        id = user.id
-        const res = await fetch(`/api/v1/users/${id}/posts`, {
-            method: "GET",
-            headers: {
-                'Authorization': "Bearer " + token
-            }
-        })
-        const data = await res.json()
-        return data
-    }
-</script>

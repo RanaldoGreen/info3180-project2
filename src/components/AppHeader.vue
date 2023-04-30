@@ -72,4 +72,8 @@ i{
   align-items: center;
 } */
 
+.container-fluid > i
+{
+  color: white;
+}
 </style>

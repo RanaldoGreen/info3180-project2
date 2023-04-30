@@ -54,11 +54,9 @@
         .then(res => res.json())
         .then(data => {
             result.value = data
-            console.log(data["errors"])
-            console.log("hey")
             if(data["errors"])
             {
-               
+              
             }
             else{
                 localStorage.setItem("token", data.token)

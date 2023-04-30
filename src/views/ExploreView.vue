@@ -31,9 +31,13 @@
                 profile: user.profile_photo
             }
             arr.push(newObj)
+            console.log(newObj)
         }
         return arr
     }
+
+
+   
 
   
     const fetchUser = async(id) => {
@@ -52,6 +56,14 @@
         })
     }
 
+    const heart = (style, style1) => {
+        return {
+            
+      'fas': style1,
+      'far': style,
+    }
+    }
+
     const likedPost = (id) => {
         fetch(`/api/v1/posts/${id}/like`, {
             method: "POST",
@@ -63,6 +75,7 @@
         .then(res => res.json())
         .then(data => {
             result.value = data
+            document.getElementById('#id')
             console.log(data)
         })
         .catch(err => result.value = err)
@@ -95,9 +108,11 @@
                                 {{ post.caption }}
                             </div>
                             <div class="explore-stats">
-                                <div class="likes"  @click="() => likedPost(post.id)">
-                                    <img src="heart.png" alt="">
-                                    <div><span>{{ post.likes }}</span> likes</div>
+                                <div class="likes">
+                                    <div @click="() => likedPost(post.id)"> 
+                                        <i v-bind:class="heart(post.style, post.style1)">&#xf004;</i>
+                                    </div>
+                                    <div><span>{{ post.likes }}</span> Likes</div>
                                 </div>
                                 <div id="date">{{ post.created_at.split(" ").splice(1,3).join(" ") }}</div>
                             </div>
@@ -118,7 +133,7 @@
     margin-top: 50px;
     height: 100vh;
     width: 100vw;
-    
+    margin-bottom: 50px;
  }
 
  .explore-left {
@@ -141,9 +156,17 @@
     margin-top: 70px;
     background-color: #fff;
  }
+ .far{
+     color:black;
+ }
 
+ .fas{
+    color:#fb3958
+ }
+ 
  .explore-user{
-    padding-top: 10px;
+    padding-top: 15px;
+    padding-bottom: 2px;
  }
 
  .explore-user .link{
@@ -170,14 +193,18 @@
  }
 
  .explore-desc {
-    margin-bottom: 50px;
+    margin-bottom: 10px;
     color: gray;
+    margin-bottom: 10px;
  }
 
  .explore-stats {
     width: 100%;
     display: flex;
     justify-content: space-between;
+    color: rgb(80, 80, 80);
+    font-size: 15px;
+    padding-bottom: 10px;
  }
 
  .likes {
@@ -187,9 +214,8 @@
     font-weight: 500;
  }
 
- .likes > img {
-    width: 15px;
-    object-fit: contain;
+ .likes > div > i {
+    width: 10px;
  }
 
  .explore-right {
@@ -217,7 +243,8 @@
  }
 
  .padding{
-    padding: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
  }
 
  .page-wrapper1 {
@@ -232,5 +259,9 @@
 
 .content {
   min-height: 100vh;
+}
+
+.likes > div > i:hover{
+    cursor: pointer;
 }
 </style>

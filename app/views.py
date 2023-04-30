@@ -1,11 +1,10 @@
-
 from app import db
 from .forms import RegisterForm, LoginForm, PostForm
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
 from app import app
-from flask import flash, redirect, render_template, request, jsonify, send_file, send_from_directory, url_for
+from flask import flash, redirect, render_template, request, jsonify, send_file, send_from_directory, session, url_for
 import os
 from app.models import Posts, Likes, Follows, Users
 from werkzeug.utils import secure_filename
@@ -26,11 +25,7 @@ def tokencheck(f):
                 return jsonify({"error": "token missing!"}), 400
             return f(*args, **kws)    
     return decorated_function
-## --------------------------------------------------------------------- ##
 
-###
-# Routing for your application.
-###
 @app.route('/api/v1/csrf-token', methods=['GET'])
 def get_csrf():
     return jsonify({'csrf_token': generate_csrf()})
@@ -55,7 +50,7 @@ def register():
         img_url = os.path.join(app.config['UPLOAD_FOLDER'],filename)
         pic.save(img_url)
 
-        # check if username or email is already taken
+    
         user = Users.query.filter_by(username=username).first()
         if user:
             return jsonify({"error": "Username already taken"}), 400
@@ -94,13 +89,29 @@ def register():
 
 @app.route("/api/v1/users/<userId>", methods=["GET"])
 def get_user(userId):
+    following = False
     if (userId == "currentuser"):
         token = request.headers["Authorization"].split(" ")[1]
         user = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
         userId = user['id']
+    
+    print("before")
+    print(userId)
+    print(session['id'])
+    targetuser = Users.query.filter_by(id=userId).first()
+    me  = Users.query.filter_by(id=session['id']).first()
+    print(me)
+    checkfollows = Follows.query.filter_by(follower=targetuser, currentuser=me).all()
+
+    for follows in checkfollows:
+        if follows.follower_id == int(userId):
+            following = True
+            break
     user = Users.query.filter_by(id=userId).first()
     if (not user):
         return jsonify({"error": "Not Possible"}), 400
+  
+
     return jsonify({
             "id": user.id,
             "username": user.username,
@@ -111,7 +122,8 @@ def get_user(userId):
             "location": user.location,
             "biography": user.biography,
             "profile_photo": "/api/v1/photo/" + user.profile,
-            "joined_on": user.joined_on
+            "joined_on": user.joined_on,
+            "Following" : following
         }), 200
 
 
@@ -143,7 +155,7 @@ def create_post(userId):
         print("hey")
         return jsonify(response), 400
 
-@app.route("/api/v1/auth/login", methods=["POST"])
+@app.route("/api/v1/auth/login", methods=["POST", "GET"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -152,10 +164,13 @@ def login():
         user = Users.query.filter_by(username=username).first()
         if user is None or not check_password_hash(user.password, password):
             flash('Incorrect login information')
-            return redirect(url_for('login'))
+            return jsonify({'errors': ["Incorrect Username or Password"]})
+            
         data = {}
         data['id'] = user.id
         data['username'] = user.username
+        session['id'] = user.id
+        
         token = jwt.encode(data, app.config["SECRET_KEY"], algorithm="HS256")
         return jsonify({"message": "User successfully logged in","token": token})
     else:
@@ -191,15 +206,37 @@ def get_posts(userId):
 @app.route("/api/v1/posts", methods=["GET"])
 def all_posts():
     posts = Posts.query.all()
+    print("before")
+    likeornot = []
+    print(session['id'])
+    checkid = Likes.query.filter_by(user_id=int(session['id'])).all()
+    for i, likes in enumerate(checkid):
+        if int(likes.post_id) == posts[i].id:
+            print("WOOOOOOOOOOOOYYYYYYYYYYYYYY")
+            likeornot.append(False)
+        else:
+            likeornot.append(True)
+
+
+    for i in range(len(posts)):
+        try:
+            likeornot[i]
+        except Exception:
+            likeornot.append(True)
+    print(likeornot)
+   
     allPosts = []
-    for post in posts:
+    for i, post in enumerate(posts):
         postt = {
             "id": post.id,
             "user_id": post.user_id,
             "photo": "/api/v1/photo/" + post.photo,
             "caption": post.caption,
             "created_at": post.created_on,
-            "likes": len(post.likes)
+            "likes": len(post.likes),
+            "style": likeornot[i],
+            "style1": not likeornot[i]
+         
         }
         allPosts.append(postt)
     return jsonify({"posts": allPosts})
@@ -262,7 +299,6 @@ def like(postId):
     db.session.commit()
 
     return jsonify({
-        "message": "You liked the post",
         "likes": len(post.likes)
     })
 
@@ -302,7 +338,3 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
-
-
-
-
