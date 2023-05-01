@@ -56,14 +56,6 @@
         })
     }
 
-    const heart = (style, style1) => {
-        return {
-            
-      'fas': style1,
-      'far': style,
-    }
-    }
-
     const likedPost = (id) => {
         fetch(`/api/v1/posts/${id}/like`, {
             method: "POST",
@@ -110,7 +102,7 @@
                             <div class="explore-stats">
                                 <div class="likes">
                                     <div @click="() => likedPost(post.id)"> 
-                                        <i v-bind:class="heart(post.style, post.style1)">&#xf004;</i>
+                                        <i class="far">&#xf004;</i>
                                     </div>
                                     <div><span>{{ post.likes }}</span> Likes</div>
                                 </div>
@@ -156,14 +148,11 @@
     margin-top: 70px;
     background-color: #fff;
  }
+
  .far{
-     color:black;
+    color:black;
  }
 
- .fas{
-    color:#fb3958
- }
- 
  .explore-user{
     padding-top: 15px;
     padding-bottom: 2px;
